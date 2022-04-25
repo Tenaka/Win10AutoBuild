@@ -116,7 +116,7 @@ Copy the following AutoUnattend.xml and copy to root of USB
             <FirstLogonCommands>
                 <SynchronousCommand wcm:action="add">
                     <CommandLine>C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -executionpolicy bypass -file D:\software\InstallScript.ps1</CommandLine>
-                    <Description>Miranda Application Installation</Description>
+                    <Description>Application Installation</Description>
                     <Order>1</Order>
                 </SynchronousCommand>
             </FirstLogonCommands>
@@ -128,7 +128,7 @@ Copy the following AutoUnattend.xml and copy to root of USB
                 <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
                 <HideOEMRegistrationScreen>true</HideOEMRegistrationScreen>
             </OOBE>
-            <RegisteredOrganization>Miranda</RegisteredOrganization>
+            <RegisteredOrganization>Tenaka</RegisteredOrganization>
             <RegisteredOwner>Windows User</RegisteredOwner>
             <TimeZone>GMT Standard Time</TimeZone>
         </component>
