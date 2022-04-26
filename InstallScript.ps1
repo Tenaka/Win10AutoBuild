@@ -1,4 +1,4 @@
-﻿<#
+<#
 ########################################################################################
 ###########################  WINDOWS 10 MEDIA PREP  ####################################
 ########################################################################################
@@ -193,7 +193,7 @@ the 'fauxadmin' account and password for the installScript.ps1 to persist betwee
 Yellow output, the installation has completed and written out to file, without any actual validation.
 
 
-Ddism /Online /Enable-Feature /FeatureName:NetFx3 /All /LimitAccess /Source:d:\sources\sxs
+dism /Online /Enable-Feature /FeatureName:NetFx3 /All /LimitAccess /Source:d:\sources\sxs
 dism /Get-WimInfo /WimFile:"C:\Downloads\Window10\sources\install.wim"
 dism /Export-Image /SourceImageFile:"C:\Downloads\Window10\sources\install.wim" /SourceIndex:3 /DestinationImageFile:"C:\Downloads\Window10\sources\install_3.wim"
 
@@ -306,56 +306,6 @@ else
         }
 
 ########################################################################################
-###################################  SET STATIC IP  ####################################
-########################################################################################
-
-
-    $InstCheck = (Get-Content $check | Select-String -SimpleMatch "ADDY01")
-    if ($InstCheck -ne $null)     
-        {
-            Write-Host "Looks like the IP Address was previously set" -ForegroundColor Yellow
-        }
-        else
-        {
-            Write-Host "Set a Static IP Address" -ForegroundColor yellow
-            $gNetAdp = Get-NetAdapter | where {$_.Status -eq "up"}
-                $intAlias = $gNetAdp.InterfaceAlias
-
-            $gNetIPC = Get-NetIPConfiguration -InterfaceAlias $gNetAdp.Name
-                $IPAddress = $gNetIPC.IPv4Address.ipaddress
-                $DHCPRouter = $gNetIPC.IPv4DefaultGateway.nexthop
-                $dnsAddress = $gNetIPC.dnsserver.serveraddresses
-
-            $gNetIPC | Remove-NetIPAddress -Confirm:$false
-            $gNetIPC.IPv4DefaultGateway |Remove-NetRoute -Confirm:$false -ErrorAction SilentlyContinue
-
-            $IPAddress = Read-Host "Enter the Static IP"
-            $DefGate = Read-Host "Enter the Default Gateway eg 192.168.0.254"
-            $dnsServer = Read-Host "Enter DNS IP(s) eg 192.168.0.22 or 192.168.0.22,192.168.0.23"
-            $dnsName = Read-Host "Enter an FQDN eg Contoso.net"
-    
-            #Set Static IP
-            New-NetIPAddress -InterfaceAlias $gNetAdp.Name `
-                             -IPAddress $IPAddress `
-                             -AddressFamily IPv4 `
-                             -PrefixLength 24 `
-                             -DefaultGateway $DefGate
-            #Set DNS Server                 
-            Set-DnsClientServerAddress -ServerAddresses $dnsServer -InterfaceAlias $intAlias
-            Add-Content $check -Value "ADDY01" 
-        }
-
-    #Reboot after hostname and IP has been set 
-    $InstCheck = @()
-    $InstCheck = (Get-Content $check | Select-String -SimpleMatch "HOSTREBOOT")
-    if ($InstCheck -eq $null)
-    {
-        Write-Host "Rebooting to apply host rename" -ForegroundColor yellow
-        Add-Content $check -Value "HOSTREBOOT" 
-        RestartClient
-    }
-
-########################################################################################
 ##################  INSTALL WINDOWS 10 SERVICING STACK UPDATE  #########################
 ########################################################################################
     $InstCheck = @()
@@ -368,7 +318,7 @@ else
         {
             Write-Host "Installing Windows Service Stack" -ForegroundColor yellow
             $ssuDir = $software + "MS-Win10-SSU"
-            $ssuGet = (ChildItem $ssuDir).FullName 
+            $ssuGet = (Get-ChildItem $ssuDir).FullName 
             & cmd /c wusa.exe $ssuGet /quiet
 
             Add-Content $check -Value "SSU01" 
@@ -389,7 +339,7 @@ else
         {
             Write-Host "Installing Windows Cumulative Update, this will take a while" -ForegroundColor yellow
             $cuDir = $software + "MS-Win10-CU"
-            $cuGet = (ChildItem $cuDir).FullName 
+            $cuGet = (Get-ChildItem $cuDir).FullName 
             & cmd /c wusa.exe $cuGet /quiet /norestart
 
             Add-Content $check -Value "CU02" 
@@ -407,7 +357,7 @@ else
  
     #Check Windows CU Installation
     $cuDir = $software + "MS-Win10-CU"
-    $cuGet = (ChildItem $cuDir).FullName 
+    $cuGet = (Get-ChildItem $cuDir).FullName 
 
     #List KB's installed
     $kbValue = ($cuGet | Select-String -Pattern "[A-Z]{2}\d{7}" | foreach { $_.Matches }).value
@@ -452,7 +402,7 @@ else
             Write-Host "Installing MS Office 2019" -ForegroundColor yellow
             $officeDir = $software + "MS-Office2019" +"\"+ "Office"
             cd $officeDir
-            $officeGet = (ChildItem $officeDir).FullName | where {$_ -like "*64.exe" }
+            $officeGet = (Get-ChildItem $officeDir).FullName | where {$_ -like "*64.exe" }
             cmd.exe /c $officeGet
             Add-Content $check -Value "Office19" 
             #sleep 10
@@ -467,8 +417,8 @@ else
 
 
     #INSTALLATION QUERY
-    $getUninx64 = Get-ChildItem  "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\" -ErrorAction SilentlyContinue
-    $getUninx86 = Get-ChildItem  "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"  -ErrorAction SilentlyContinue
+    $getUninx64 = Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\" -ErrorAction SilentlyContinue
+    $getUninx86 = Get-ChildItem "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"  -ErrorAction SilentlyContinue
     $getUnin = $getUninx64 + $getUninx86
     $UninChild = $getUnin.Name.Replace("HKEY_LOCAL_MACHINE","HKLM:")
     $InstallApps =@()
@@ -510,7 +460,7 @@ else
         else
         {
             $msvscplusDir = $software + "MS-VS-CPlus"
-            $msvscplusGet = (ChildItem $msvscplusDir).FullName
+            $msvscplusGet = (Get-ChildItem $msvscplusDir).FullName
 
             foreach ($msvsplus in $msvscplusGet)
             {
@@ -518,8 +468,8 @@ else
             & cmd.exe /c $msvsplus /S
 
             #INSTALLATION QUERY
-            $getUninx64 = Get-ChildItem  "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\" -ErrorAction SilentlyContinue
-            $getUninx86 = Get-ChildItem  "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"  -ErrorAction SilentlyContinue
+            $getUninx64 = Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\" -ErrorAction SilentlyContinue
+            $getUninx86 = Get-ChildItem "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"  -ErrorAction SilentlyContinue
             $getUnin = $getUninx64 + $getUninx86
             $UninChild = $getUnin.Name.Replace("HKEY_LOCAL_MACHINE","HKLM:")
             $InstallApps =@()
@@ -570,12 +520,12 @@ else
         {
             Write-Host "Installing 7 Zip" -ForegroundColor yellow   
             $7zipDir = $software + "7Zip"
-            $7zipGet = (ChildItem $7zipDir).FullName
+            $7zipGet = (Get-ChildItem $7zipDir).FullName
             & cmd.exe /c $7zipGet /S
 
             #INSTALLATION QUERY
-            $getUninx64 = Get-ChildItem  "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\" -ErrorAction SilentlyContinue
-            $getUninx86 = Get-ChildItem  "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"  -ErrorAction SilentlyContinue
+            $getUninx64 = Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\" -ErrorAction SilentlyContinue
+            $getUninx86 = Get-ChildItem "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"  -ErrorAction SilentlyContinue
             $getUnin = $getUninx64 + $getUninx86
             $UninChild = $getUnin.Name.Replace("HKEY_LOCAL_MACHINE","HKLM:")
             $InstallApps =@()
@@ -623,12 +573,12 @@ else
         {
             Write-Host "Installing WinSCP" -ForegroundColor yellow
             $winscpDir = $software + "WinSCP"
-            $winscpGet = (ChildItem $winscpDir).FullName
+            $winscpGet = (Get-ChildItem $winscpDir).FullName
             & cmd.exe /c $winscpGet /VERYSILENT /NORESTART /ALLUSERS
 
             #INSTALLATION QUERY
-            $getUninx64 = Get-ChildItem  "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\" -ErrorAction SilentlyContinue
-            $getUninx86 = Get-ChildItem  "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"  -ErrorAction SilentlyContinue
+            $getUninx64 = Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\" -ErrorAction SilentlyContinue
+            $getUninx86 = Get-ChildItem "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"  -ErrorAction SilentlyContinue
             $getUnin = $getUninx64 + $getUninx86
             $UninChild = $getUnin.Name.Replace("HKEY_LOCAL_MACHINE","HKLM:")
             $InstallApps =@()
@@ -672,12 +622,12 @@ else
         {
             Write-Host "Installing TortoiseSVN" -ForegroundColor yellow
             $toroDir = $software + "TortoiseSVN"
-            $toroGet = (ChildItem $toroDir).FullName
+            $toroGet = (Get-ChildItem $toroDir).FullName
             & cmd.exe /c msiexec.exe /i $toroGet /qn /norestart
 
             #INSTALLATION QUERY
-            $getUninx64 = Get-ChildItem  "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\" -ErrorAction SilentlyContinue
-            $getUninx86 = Get-ChildItem  "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"  -ErrorAction SilentlyContinue
+            $getUninx64 = Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\" -ErrorAction SilentlyContinue
+            $getUninx86 = Get-ChildItem "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"  -ErrorAction SilentlyContinue
             $getUnin = $getUninx64 + $getUninx86
             $UninChild = $getUnin.Name.Replace("HKEY_LOCAL_MACHINE","HKLM:")
             $InstallApps =@()
@@ -721,12 +671,12 @@ else
         {
             Write-Host "Installing Notepad Plus Plus" -ForegroundColor yellow
             $noteDir = $software + "NotepadPlus"
-            $noteGet = (ChildItem $noteDir).FullName
+            $noteGet = (Get-ChildItem $noteDir).FullName
             & cmd.exe /c $noteGet /S
 
             #INSTALLATION QUERY
-            $getUninx64 = Get-ChildItem  "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\" -ErrorAction SilentlyContinue
-            $getUninx86 = Get-ChildItem  "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"  -ErrorAction SilentlyContinue
+            $getUninx64 = Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\" -ErrorAction SilentlyContinue
+            $getUninx86 = Get-ChildItem "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"  -ErrorAction SilentlyContinue
             $getUnin = $getUninx64 + $getUninx86
             $UninChild = $getUnin.Name.Replace("HKEY_LOCAL_MACHINE","HKLM:")
             $InstallApps =@()
@@ -769,12 +719,12 @@ else
         {
             Write-Host "Installing MS Edge" -ForegroundColor yellow
             $edgeDir = $software + "MS-Edge"
-            $edgeGet = (ChildItem $edgeDir).FullName | where {$_ -like "*.msi" }
+            $edgeGet = (Get-ChildItem $edgeDir).FullName | where {$_ -like "*.msi" }
             & cmd.exe /c msiexec.exe /i $edgeGet /norestart /quiet
 
             #INSTALLATION QUERY
-            $getUninx64 = Get-ChildItem  "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\" -ErrorAction SilentlyContinue
-            $getUninx86 = Get-ChildItem  "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"  -ErrorAction SilentlyContinue
+            $getUninx64 = Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\" -ErrorAction SilentlyContinue
+            $getUninx86 = Get-ChildItem "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"  -ErrorAction SilentlyContinue
             $getUnin = $getUninx64 + $getUninx86
             $UninChild = $getUnin.Name.Replace("HKEY_LOCAL_MACHINE","HKLM:")
             $InstallApps =@()
@@ -816,12 +766,12 @@ else
         {
             Write-Host "Installing Google Chrome" -ForegroundColor yellow
             $chromeDir = $software + "Chrome"
-            $chromeGet = (ChildItem $chromeDir).FullName | where {$_ -like "*.msi" }
+            $chromeGet = (Get-ChildItem $chromeDir).FullName | where {$_ -like "*.msi" }
             & cmd.exe /c msiexec.exe /i $chromeGet /norestart /quiet
 
             #INSTALLATION QUERY
-            $getUninx64 = Get-ChildItem  "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\" -ErrorAction SilentlyContinue
-            $getUninx86 = Get-ChildItem  "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"  -ErrorAction SilentlyContinue
+            $getUninx64 = Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\" -ErrorAction SilentlyContinue
+            $getUninx86 = Get-ChildItem "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"  -ErrorAction SilentlyContinue
             $getUnin = $getUninx64 + $getUninx86
             $UninChild = $getUnin.Name.Replace("HKEY_LOCAL_MACHINE","HKLM:")
             $InstallApps =@()
@@ -865,7 +815,7 @@ else
         else
         {
             $jreDir = $software + "JRE"
-            $jreGet = (ChildItem $jreDir).FullName
+            $jreGet = (Get-ChildItem $jreDir).FullName
 
             foreach ($jre in $jreGet)
             {
@@ -873,8 +823,8 @@ else
             & cmd.exe /c $jre /s
 
                 #INSTALLATION QUERY
-                $getUninx64 = Get-ChildItem  "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\" -ErrorAction SilentlyContinue
-                $getUninx86 = Get-ChildItem  "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"  -ErrorAction SilentlyContinue
+                $getUninx64 = Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\" -ErrorAction SilentlyContinue
+                $getUninx86 = Get-ChildItem "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\"  -ErrorAction SilentlyContinue
                 $getUnin = $getUninx64 + $getUninx86
                 $UninChild = $getUnin.Name.Replace("HKEY_LOCAL_MACHINE","HKLM:")
                 $InstallApps=@()
@@ -910,7 +860,7 @@ else
 ########################################################################################
 ######################################  TIDY UP  #######################################
 ########################################################################################
-    #Disable futher Autologons
+    #Disable Autologon
     Write-Host "Disabling Autologon" -ForegroundColor yellow
     Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon' -Name AutoAdminLogon -Value 0 -Force
     Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon' -Name DefaultUserName -Value "" -Force
